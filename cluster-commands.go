@@ -593,3 +593,74 @@ func (adm *AdminClient) SRStatusInfo(ctx context.Context) (info SRStatusInfo, er
 	err = json.NewDecoder(resp.Body).Decode(&info)
 	return info, err
 }
+
+// SiteReplicationRemove - unlinks a site from site replication
+func (adm *AdminClient) SiteReplicationRemove(ctx context.Context, removeReq SRRemoveReq) (st ReplicateRemoveStatus, err error) {
+	rmvBytes, err := json.Marshal(removeReq)
+	if err != nil {
+		return st, nil
+	}
+
+	reqData := requestData{
+		relPath: adminAPIPrefix + "/site-replication/remove",
+		content: rmvBytes,
+	}
+
+	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
+	defer closeResponse(resp)
+	if err != nil {
+		return st, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return st, httpRespToErrorResponse(resp)
+	}
+	return ReplicateRemoveStatus{
+		Success: true,
+	}, nil
+}
+
+// SRPeerRemove - used only by minio server to unlink cluster replication
+// for a server already in the site replication setup
+func (adm *AdminClient) SRPeerRemove(ctx context.Context, removeReq SRRemoveReq) (st ReplicateRemoveStatus, err error) {
+	reqBytes, err := json.Marshal(removeReq)
+	if err != nil {
+		return st, err
+	}
+
+	reqData := requestData{
+		relPath: adminAPIPrefix + "/site-replication/peer/remove",
+		content: reqBytes,
+	}
+
+	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
+	defer closeResponse(resp)
+	if err != nil {
+		return st, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return st, httpRespToErrorResponse(resp)
+	}
+	return ReplicateRemoveStatus{
+		Success: true,
+	}, nil
+}
+
+// ReplicateRemoveStatus - returns status of unlink request.
+type ReplicateRemoveStatus struct {
+	Success   bool   `json:"success"`
+	Status    string `json:"status"`
+	ErrDetail string `json:"errorDetail,omitempty"`
+}
+
+// SRRemoveReq - arg body for SRRemoveReq
+type SRRemoveReq struct {
+	SiteNames []string `json:"sites"`
+	RemoveAll bool     `json:"all"` // true if all sites are to be removed.
+}
+
+const (
+	ReplicateRemoveStatusSuccess = "Requested sites were removed from cluster replication successfully."
+	ReplicateRemoveStatusPartial = "Some sites could not be removed from cluster replication configuration."
+)
