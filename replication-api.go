@@ -61,6 +61,7 @@ type DiffInfo struct {
 	ReplicationTimestamp    time.Time              `json:"replTimestamp,omitempty"`
 	LastModified            time.Time              `json:"lastModified,omitempty"`
 	IsDeleteMarker          bool                   `json:"deletemarker"`
+	IsLatest                bool                   `json:"isLatest"`
 }
 
 // BucketReplicationDiff - gets diff for non-replicated entries.
